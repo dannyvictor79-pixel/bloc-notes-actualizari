@@ -70,6 +70,12 @@ export async function createFriendPanel(
 ): Promise<Panel> {
   const name = input.name.trim().slice(0, 80);
   if (!name) throw new Error("Numele panoului este obligatoriu.");
+  const emailRequired = input.friendEmail?.trim().toLowerCase() ?? "";
+  if (!emailRequired) {
+    throw new Error(
+      "Emailul prietenului e obligatoriu (invitația e legată de acel email).",
+    );
+  }
 
   const id = newId("panel");
   let slug = slugify(name);
@@ -94,20 +100,22 @@ export async function createFriendPanel(
     [id, user.sub, user.email, user.name],
   );
 
-  const email = input.friendEmail?.trim().toLowerCase() ?? "";
-  if (email) {
-    await sql(
-      `insert into panel_members (panel_id, member_sub, member_email, member_name, role)
-       values ($1, $2, $3, $4, 'member')
-       on conflict do nothing`,
-      [
-        id,
-        `invite:${email}`,
-        email,
-        input.friendName?.trim() || email.split("@")[0] || "Prieten",
-      ],
-    );
-  }
+  await sql(
+    `insert into panel_members (panel_id, member_sub, member_email, member_name, role)
+     values ($1, $2, $3, $4, 'member')
+     on conflict do nothing`,
+    [
+      id,
+      `invite:${emailRequired}`,
+      emailRequired,
+      input.friendName?.trim() || emailRequired.split("@")[0] || "Prieten",
+    ],
+  );
+
+  await sql(
+    `insert into panel_settings (panel_id) values ($1) on conflict do nothing`,
+    [id],
+  );
 
   const panel = await getPanel(id);
   if (!panel) throw new Error("Panoul nu a putut fi creat.");
@@ -156,26 +164,48 @@ export async function claimInvite(
     "select 1 from panel_members where panel_id = $1 and member_sub = $2",
     [panel.id, user.sub],
   );
-  if (!existing[0]) {
-    if (user.email) {
-      await sql(
-        "delete from panel_members where panel_id = $1 and member_sub = $2",
-        [panel.id, `invite:${user.email.toLowerCase()}`],
+  if (existing[0]) return panel;
+
+  const pending = await sql<{ member_email: string; member_sub: string }>(
+    `select member_email, member_sub from panel_members
+     where panel_id = $1 and member_sub like 'invite:%'`,
+    [panel.id],
+  );
+
+  // If the admin pre-registered friend emails, only those emails may join.
+  if (pending.length > 0) {
+    const email = (user.email ?? "").trim().toLowerCase();
+    if (!email) {
+      throw new Error(
+        "Acest panou cere un cont cu email. Autentifică-te cu emailul invitat.",
+      );
+    }
+    const allowed = pending.some(
+      (p) => (p.member_email || "").trim().toLowerCase() === email,
+    );
+    if (!allowed) {
+      throw new Error(
+        "Emailul tău nu este pe lista de invitați pentru acest panou.",
       );
     }
     await sql(
-      `insert into panel_members (panel_id, member_sub, member_email, member_name, role)
-       values ($1, $2, $3, $4, $5)
-       on conflict do nothing`,
-      [
-        panel.id,
-        user.sub,
-        user.email,
-        user.name,
-        panel.kind === "admin" ? "owner" : "member",
-      ],
+      "delete from panel_members where panel_id = $1 and member_sub = $2",
+      [panel.id, `invite:${email}`],
     );
   }
+
+  await sql(
+    `insert into panel_members (panel_id, member_sub, member_email, member_name, role)
+     values ($1, $2, $3, $4, $5)
+     on conflict do nothing`,
+    [
+      panel.id,
+      user.sub,
+      user.email,
+      user.name,
+      panel.kind === "admin" ? "owner" : "member",
+    ],
+  );
   return panel;
 }
 

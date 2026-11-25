@@ -109,7 +109,7 @@ export function parseCommand(content: string): ParsedCommand {
 
 export function helpText(): string {
   return [
-    "Comenzi v1 (înlocuiesc botul Telegram pe acest panou):",
+    "Comenzi (înlocuiesc botul Telegram pe acest panou):",
     "",
     "`.efectueaza test SMARTONE 58:96:0A:B3:E2:84 Ion 24h`",
     "`.test IBO AA:BB:CC:DD:EE:FF Maria 48h`",
@@ -117,7 +117,8 @@ export function helpText(): string {
     "`.teste` — joburile de test",
     "`.ajutor` — acest mesaj",
     "",
-    "Poți trimite și pe mai multe linii după `.efectueaza test`.",
-    "În v1, testul e simulat: creează job → efectuat → termen pe panou.",
+    "Poți atașa o poză din app (ex. SMARTONE cu MAC pe bară) — citesc app + MAC.",
+    "Testul e simulat până legăm panoul IPTV real.",
+    "Memento 3/6 zile + rezumat 09:00: cron pe /api/cron/reminders.",
   ].join("\n");
 }

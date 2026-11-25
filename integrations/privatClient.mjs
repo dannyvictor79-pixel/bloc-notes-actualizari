@@ -90,8 +90,22 @@ export function createPrivatClient({
         body: { appName, macAddress, clientName, durationHours },
       });
     },
+
+    /** OCR poză SMARTONE / text banner */
+    async ocr({ imageBase64, mimeType, text }) {
+      return request("/api/v1/ocr", {
+        method: "POST",
+        body: { imageBase64, mimeType, text },
+      });
+    },
   };
 }
+
+/**
+ * Cron pe VPS / Bloc notes (la fiecare oră):
+ *   curl -X POST "$PRIVAT_BASE_URL/api/cron/reminders" \
+ *     -H "Authorization: Bearer $CRON_SECRET"
+ */
 
 /** Exemplu drop-in peste un vechi helper Telegram */
 export async function sendViaPrivatInsteadOfTelegram(text) {

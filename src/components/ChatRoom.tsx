@@ -23,6 +23,8 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
   const [sampleMode, setSampleMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pending, startTransition] = useTransition();
+  const [imageName, setImageName] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,24 +56,46 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pending]);
 
+  function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Nu am putut citi fișierul."));
+      reader.readAsDataURL(file);
+    });
+  }
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     const content = draft.trim();
-    if (!content || pending) return;
+    const file = fileRef.current?.files?.[0] ?? null;
+    if ((!content && !file) || pending) return;
     setDraft("");
     setError(null);
 
     startTransition(async () => {
       try {
+        let imageBase64: string | undefined;
+        let mimeType: string | undefined;
+        if (file) {
+          if (file.size > 1_800_000) {
+            throw new Error("Imaginea e prea mare (max ~1.5MB).");
+          }
+          const dataUrl = await readFileAsDataUrl(file);
+          imageBase64 = dataUrl;
+          mimeType = file.type || "image/jpeg";
+        }
         const res = await fetch(`/api/panels/${panelId}/messages`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({ content, imageBase64, mimeType }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Mesajul nu a putut fi trimis.");
         if (data.sample) setSampleMode(true);
         setMessages((prev) => [...prev, ...(data.messages ?? [])]);
+        if (fileRef.current) fileRef.current.value = "";
+        setImageName(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Eroare la trimitere.");
         setDraft(content);
@@ -90,7 +114,7 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
         </div>
         {sampleMode ? (
           <span className="rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs text-[var(--ink)]">
-            Răspunsuri demo — adaugă cheia OpenAI
+            Răspunsuri locale (AI chat opțional)
           </span>
         ) : null}
       </div>
@@ -147,24 +171,42 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
               {error}
             </p>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
-              className="field flex-1"
+              className="field min-w-[12rem] flex-1"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Scrie un mesaj…"
+              placeholder="Mesaj sau .efectueaza test…"
               maxLength={4000}
               disabled={pending}
               aria-label="Mesaj"
             />
+            <label className="cursor-pointer rounded-xl border border-[var(--line)] bg-white/70 px-3 py-2 text-sm">
+              Poză
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={pending}
+                onChange={(e) =>
+                  setImageName(e.target.files?.[0]?.name ?? null)
+                }
+              />
+            </label>
             <button
               type="submit"
               className="cta-primary rounded-xl px-4 py-2 text-sm font-medium"
-              disabled={pending || !draft.trim()}
+              disabled={pending || (!draft.trim() && !imageName)}
             >
               Trimite
             </button>
           </div>
+          {imageName ? (
+            <p className="mt-2 text-xs text-[var(--ink-soft)]">
+              Atașat: {imageName}
+            </p>
+          ) : null}
         </form>
       </div>
     </div>

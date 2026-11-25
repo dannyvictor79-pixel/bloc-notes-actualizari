@@ -16,6 +16,12 @@ export type AppUser = {
 
 const NO_STORE = { "cache-control": "private, no-store" };
 
+function isPublishedHost(): boolean {
+  return Boolean(
+    process.env.CURSOR_APP_ID?.trim() || process.env.VERCEL?.trim(),
+  );
+}
+
 export function json(data: unknown, status = 200): Response {
   return Response.json(data, { status, headers: NO_STORE });
 }
@@ -31,21 +37,29 @@ export async function requirePerson(
   return identity;
 }
 
-/** Admin only if configured owner email matches, or local simulated viewer. */
+/**
+ * Admin only when APP_OWNER_EMAIL matches a verified email.
+ * On published hosts, simulated viewers are never admin.
+ * Locally (no CURSOR_APP_ID), the simulated viewer may admin for Preview.
+ */
 export function computeIsAdmin(identity: VerifiedIdentity): boolean {
   if (identity.kind !== "person") return false;
 
-  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
-  const viewerEmail = (identity.email ?? "").trim().toLowerCase();
-
-  if (ownerEmail !== "") {
-    return viewerEmail !== "" && viewerEmail === ownerEmail;
+  if (isPublishedHost()) {
+    if (identity.simulated) return false;
+    const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
+    if (!ownerEmail) return false;
+    const viewerEmail = (identity.email ?? "").trim().toLowerCase();
+    if (!viewerEmail || viewerEmail !== ownerEmail) return false;
+    if (identity.emailVerified === false) return false;
+    return true;
   }
 
-  // Production without APP_OWNER_EMAIL: nobody is admin (safe default).
-  // Local/preview simulated viewer may administer so the UI is usable.
+  // Local / Preview without platform app id
   if (identity.simulated) return true;
-  return false;
+  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
+  if (!ownerEmail) return false;
+  return (identity.email ?? "").trim().toLowerCase() === ownerEmail;
 }
 
 export async function resolveUser(
@@ -138,6 +152,10 @@ async function ensureAdminPanel(
     `insert into panel_members (panel_id, member_sub, member_email, member_name, role)
      values ($1, $2, $3, $4, 'owner')`,
     [id, adminSub, identity.email ?? "", identity.name || "Admin"],
+  );
+  await sql(
+    `insert into panel_settings (panel_id) values ($1) on conflict do nothing`,
+    [id],
   );
 }
 

@@ -8,6 +8,7 @@ import {
   expirationStatus,
   listExpirations,
 } from "../../../../../lib/expirations";
+import { ocrImageBase64, parseAppBannerText } from "../../../../../lib/ocr";
 import {
   addMessage,
   getPanel,
@@ -51,14 +52,40 @@ export async function POST(request: Request, ctx: Ctx) {
     return json({ error: "Nu ai acces la acest panou." }, 403);
   }
 
-  let body: { content?: string };
+  let body: {
+    content?: string;
+    imageBase64?: string;
+    mimeType?: string;
+  };
   try {
     body = await request.json();
   } catch {
     return json({ error: "JSON invalid." }, 400);
   }
 
-  const content = body.content?.trim() ?? "";
+  const image = body.imageBase64?.trim() ?? "";
+  let content = body.content?.trim() ?? "";
+
+  if (image) {
+    if (image.length > 2_500_000) {
+      return json({ error: "Imaginea e prea mare." }, 400);
+    }
+    const ocr = await ocrImageBase64(image, body.mimeType || "image/jpeg");
+    const label = [
+      "[poză app]",
+      ocr.appName && `App: ${ocr.appName}`,
+      ocr.macAddress && `MAC: ${ocr.macAddress}`,
+      ocr.trialDays != null && `Trial: ${ocr.trialDays} zile`,
+      content,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    content = label || "[poză app — fără text recunoscut]";
+    if (ocr.macAddress || ocr.appName) {
+      content += `\n\nSugestie:\n.efectueaza test ${ocr.appName || "APP"} ${ocr.macAddress || "MAC"} Nume 24h`;
+    }
+  }
+
   if (!content) return json({ error: "Mesajul e gol." }, 400);
   if (content.length > 4000) {
     return json({ error: "Mesajul e prea lung (max 4000)." }, 400);
@@ -98,7 +125,23 @@ export async function POST(request: Request, ctx: Ctx) {
   let sample = false;
   let meta: Record<string, unknown> | undefined;
 
-  if (command?.kind === "help") {
+  if (image && !command) {
+    const parsed = parseAppBannerText(content);
+    replyText = parsed.macAddress
+      ? [
+          "Am citit din poză:",
+          parsed.appName && `Aplicație: ${parsed.appName}`,
+          `MAC: ${parsed.macAddress}`,
+          parsed.trialDays != null && `Trial: ${parsed.trialDays} zile`,
+          "",
+          "Confirmă cu:",
+          `.efectueaza test ${parsed.appName || "SMARTONE"} ${parsed.macAddress} Nume 24h`,
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "Nu am putut citi MAC-ul din poză. Scrie manual: `.efectueaza test SMARTONE AA:BB:CC:DD:EE:FF Nume 24h`";
+    meta = { ocr: parsed };
+  } else if (command?.kind === "help") {
     replyText = helpText();
   } else if (command?.kind === "lista_expirari") {
     const items = await listExpirations(panel.id);
@@ -142,7 +185,7 @@ export async function POST(request: Request, ctx: Ctx) {
       sample = true;
     } else {
       const reply = await generateReply({
-        systemPrompt: `${panel.system_prompt}\n\nDacă utilizatorul vrea un test, spune-i să folosească:\n.efectueaza test APP MAC Nume 24h`,
+        systemPrompt: panel.system_prompt,
         history: recent,
         userMessage: content,
       });
@@ -151,7 +194,7 @@ export async function POST(request: Request, ctx: Ctx) {
     }
   } else {
     const reply = await generateReply({
-      systemPrompt: `${panel.system_prompt}\n\nDacă utilizatorul vrea un test, spune-i să folosească:\n.efectueaza test APP MAC Nume 24h`,
+      systemPrompt: panel.system_prompt,
       history: recent,
       userMessage: content,
     });

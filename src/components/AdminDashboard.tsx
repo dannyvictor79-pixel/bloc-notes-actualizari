@@ -167,13 +167,14 @@ export function AdminDashboard({ initialPanels }: Props) {
             />
           </label>
           <label className="grid gap-1 text-sm">
-            <span>Email prieten (opțional)</span>
+            <span>Email prieten (obligatoriu)</span>
             <input
               className="field"
               type="email"
               value={friendEmail}
               onChange={(e) => setFriendEmail(e.target.value)}
               placeholder="prieten@email.com"
+              required
             />
           </label>
           <label className="grid gap-1 text-sm">
@@ -205,7 +206,7 @@ export function AdminDashboard({ initialPanels }: Props) {
             <button
               type="submit"
               className="cta-primary rounded-xl px-5 py-2.5 text-sm font-medium"
-              disabled={pending || !name.trim()}
+              disabled={pending || !name.trim() || !friendEmail.trim()}
             >
               Creează panou + API key
             </button>
