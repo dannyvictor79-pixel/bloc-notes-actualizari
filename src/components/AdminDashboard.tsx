@@ -122,6 +122,34 @@ export function AdminDashboard({ initialPanels }: Props) {
           Creează panouri prieteni cu link de înscriere și API key pentru Bloc
           notes (înlocuiește tokenul Telegram).
         </p>
+        <div className="panel-surface mt-4 max-w-xl rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
+          <p className="font-medium text-[var(--ink)]">În Bloc notes, per prieten:</p>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>
+              Base URL:{" "}
+              <code className="rounded bg-black/5 px-1 text-xs">
+                https://privat-chat.apps.grok.bot
+              </code>
+            </li>
+            <li>
+              API key:{" "}
+              <code className="rounded bg-black/5 px-1 text-xs">bn_…</code>{" "}
+              (copiat de pe panoul de mai jos)
+            </li>
+            <li>
+              Header:{" "}
+              <code className="rounded bg-black/5 px-1 text-xs">
+                Authorization: Bearer bn_…
+              </code>
+            </li>
+          </ul>
+          <p className="mt-2 text-xs">
+            Endpoints: <code>/api/v1/me</code>, <code>/api/v1/messages</code>,{" "}
+            <code>/api/v1/expirations</code>, <code>/api/v1/reminders</code>,{" "}
+            <code>/api/v1/tests</code>. Client gata:{" "}
+            <code>integrations/privatClient.mjs</code>.
+          </p>
+        </div>
       </section>
 
       <section className="panel-surface rounded-2xl p-5 sm:p-6">
