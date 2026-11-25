@@ -1,10 +1,19 @@
 import { canAccessPanel, getAppUser, json } from "../../../../../lib/auth";
 import { generateReply } from "../../../../../lib/chat";
 import {
+  helpText,
+  parseCommand,
+} from "../../../../../lib/commands";
+import {
+  expirationStatus,
+  listExpirations,
+} from "../../../../../lib/expirations";
+import {
   addMessage,
   getPanel,
   listMessages,
 } from "../../../../../lib/panels";
+import { listTestJobs, runSimulatedTest } from "../../../../../lib/tests";
 
 export const dynamic = "force-dynamic";
 
@@ -69,21 +78,68 @@ export async function POST(request: Request, ctx: Ctx) {
     content,
   });
 
-  const reply = await generateReply({
-    systemPrompt: panel.system_prompt,
-    history: recent,
-    userMessage: content,
-  });
+  const command = parseCommand(content);
+  let replyText: string;
+  let sample = false;
+  let meta: Record<string, unknown> | undefined;
+
+  if (command?.kind === "help") {
+    replyText = helpText();
+  } else if (command?.kind === "lista_expirari") {
+    const items = await listExpirations(panel.id);
+    if (items.length === 0) {
+      replyText = "Nu există termene pe acest panou.";
+    } else {
+      replyText = [
+        "Termene pe panou:",
+        ...items.slice(0, 15).map((e) => {
+          const st = expirationStatus(e.expires_at);
+          return `• ${e.client_name}${e.app_name ? ` · ${e.app_name}` : ""}${e.mac_address ? ` · ${e.mac_address}` : ""} — ${st.label} (${new Date(e.expires_at).toLocaleString("ro-RO")})`;
+        }),
+      ].join("\n");
+    }
+  } else if (command?.kind === "lista_teste") {
+    const jobs = await listTestJobs(panel.id);
+    if (jobs.length === 0) {
+      replyText = "Niciun test pe acest panou.";
+    } else {
+      replyText = [
+        "Joburi test:",
+        ...jobs.slice(0, 10).map(
+          (j) =>
+            `• [${j.status}] ${j.app_name || "?"} ${j.mac_address || ""} ${j.client_name} ${j.duration_hours}h`,
+        ),
+      ].join("\n");
+    }
+  } else if (command?.kind === "test") {
+    const result = await runSimulatedTest({
+      panelId: panel.id,
+      userSub: user.sub,
+      command,
+      rawInput: content,
+    });
+    replyText = result.reply;
+    meta = { testJobId: result.job.id, status: result.job.status };
+  } else {
+    const reply = await generateReply({
+      systemPrompt: `${panel.system_prompt}\n\nDacă utilizatorul vrea un test, spune-i să folosească:\n.efectueaza test APP MAC Nume 24h`,
+      history: recent,
+      userMessage: content,
+    });
+    replyText = reply.content;
+    sample = reply.sample;
+  }
 
   const assistantMsg = await addMessage(panel.id, {
     author_sub: "assistant",
     author_name: "Chatbot",
     role: "assistant",
-    content: reply.content,
+    content: replyText,
   });
 
   return json({
-    sample: reply.sample,
+    sample,
+    meta,
     messages: [
       {
         id: userMsg.id,

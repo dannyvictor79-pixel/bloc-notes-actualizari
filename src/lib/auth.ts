@@ -114,15 +114,17 @@ async function ensureAdminPanel(
 
   const id = newId("panel");
   const invite = newToken();
+  const apiKey = `bn_${newToken()}`;
   await sql(
-    `insert into panels (id, slug, name, kind, invite_token, system_prompt, created_by_sub)
-     values ($1, $2, $3, 'admin', $4, $5, $6)`,
+    `insert into panels (id, slug, name, kind, invite_token, api_key, system_prompt, created_by_sub)
+     values ($1, $2, $3, 'admin', $4, $5, $6, $7)`,
     [
       id,
       slugify("panou-admin"),
       "Panou Admin",
       invite,
-      "Ești asistentul personal al administratorului. Răspunde clar, prietenos și în română când utilizatorul scrie în română.",
+      apiKey,
+      "Ești asistentul personal al administratorului. Comenzi: .efectueaza test, .expirari, .teste, .ajutor. Răspunde clar, în română.",
       adminSub,
     ],
   );

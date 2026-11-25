@@ -3,6 +3,7 @@ import {
   deletePanel,
   getPanel,
   listMembers,
+  rotateApiKey,
   rotateInvite,
 } from "../../../../lib/panels";
 import { sql } from "../../../../lib/db";
@@ -28,6 +29,7 @@ export async function GET(request: Request, ctx: Ctx) {
       name: panel.name,
       kind: panel.kind,
       inviteToken: user.isAdmin ? panel.invite_token : undefined,
+      apiKey: user.isAdmin ? panel.api_key : undefined,
       systemPrompt: user.isAdmin ? panel.system_prompt : undefined,
       createdAt: panel.created_at,
     },
@@ -53,6 +55,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
     name?: string;
     systemPrompt?: string;
     rotateInvite?: boolean;
+    rotateApiKey?: boolean;
   };
   try {
     body = await request.json();
@@ -73,8 +76,12 @@ export async function PATCH(request: Request, ctx: Ctx) {
     ]);
   }
   let inviteToken = panel.invite_token;
+  let apiKey = panel.api_key;
   if (body.rotateInvite) {
     inviteToken = await rotateInvite(id);
+  }
+  if (body.rotateApiKey) {
+    apiKey = await rotateApiKey(id);
   }
 
   const updated = await getPanel(id);
@@ -85,6 +92,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       name: updated!.name,
       kind: updated!.kind,
       inviteToken,
+      apiKey,
       systemPrompt: updated!.system_prompt,
       createdAt: updated!.created_at,
     },

@@ -20,6 +20,7 @@ export async function GET(request: Request) {
       name: p.name,
       kind: p.kind,
       inviteToken: user.isAdmin ? p.invite_token : undefined,
+      apiKey: user.isAdmin ? p.api_key : undefined,
       systemPrompt: user.isAdmin ? p.system_prompt : undefined,
       createdAt: p.created_at,
     })),

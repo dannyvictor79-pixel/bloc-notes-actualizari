@@ -98,6 +98,18 @@ export function HomeClient() {
                 Deschide panoul tău
               </Link>
             ) : null}
+            <Link
+              href="/expirari"
+              className="rounded-xl border border-[var(--line)] bg-white/70 px-5 py-3 text-sm"
+            >
+              Expirări
+            </Link>
+            <Link
+              href="/teste"
+              className="rounded-xl border border-[var(--line)] bg-white/70 px-5 py-3 text-sm"
+            >
+              Teste
+            </Link>
             {data.user.isAdmin ? (
               <Link
                 href="/admin"

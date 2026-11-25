@@ -10,6 +10,7 @@ export type AdminPanel = {
   name: string;
   kind: "admin" | "friend";
   inviteToken?: string;
+  apiKey?: string;
   createdAt: string;
 };
 
@@ -33,10 +34,9 @@ export function AdminDashboard({ initialPanels }: Props) {
     return `${window.location.origin}/join/${token}`;
   }
 
-  async function copyInvite(token: string) {
-    const url = inviteUrl(token);
-    await navigator.clipboard.writeText(url);
-    setCopied(token);
+  async function copyText(label: string, value: string) {
+    await navigator.clipboard.writeText(value);
+    setCopied(label);
     setTimeout(() => setCopied(null), 1800);
   }
 
@@ -70,7 +70,7 @@ export function AdminDashboard({ initialPanels }: Props) {
   }
 
   function onDelete(id: string) {
-    if (!confirm("Ștergi panoul și toate mesajele?")) return;
+    if (!confirm("Ștergi panoul și toate datele?")) return;
     startTransition(async () => {
       const res = await fetch(`/api/panels/${id}`, { method: "DELETE" });
       const data = await res.json();
@@ -83,20 +83,28 @@ export function AdminDashboard({ initialPanels }: Props) {
     });
   }
 
-  async function onRotate(id: string) {
+  async function onRotate(id: string, field: "invite" | "api") {
     const res = await fetch(`/api/panels/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ rotateInvite: true }),
+      body: JSON.stringify(
+        field === "invite" ? { rotateInvite: true } : { rotateApiKey: true },
+      ),
     });
     const data = await res.json();
     if (!res.ok) {
-      setError(data.error || "Nu am putut regenera invitația.");
+      setError(data.error || "Nu am putut regenera.");
       return;
     }
     setPanels((prev) =>
       prev.map((p) =>
-        p.id === id ? { ...p, inviteToken: data.panel.inviteToken } : p,
+        p.id === id
+          ? {
+              ...p,
+              inviteToken: data.panel.inviteToken,
+              apiKey: data.panel.apiKey,
+            }
+          : p,
       ),
     );
   }
@@ -111,8 +119,8 @@ export function AdminDashboard({ initialPanels }: Props) {
         </p>
         <h1 className="brand-mark text-4xl sm:text-5xl">Panou admin</h1>
         <p className="mt-3 max-w-xl text-[var(--ink-soft)]">
-          Creează panouri separate pentru prieteni. Fiecare panou are chat propriu
-          și un link de invitație.
+          Creează panouri prieteni cu link de înscriere și API key pentru Bloc
+          notes (înlocuiește tokenul Telegram).
         </p>
       </section>
 
@@ -171,7 +179,7 @@ export function AdminDashboard({ initialPanels }: Props) {
               className="cta-primary rounded-xl px-5 py-2.5 text-sm font-medium"
               disabled={pending || !name.trim()}
             >
-              Creează panou
+              Creează panou + API key
             </button>
           </div>
         </form>
@@ -190,38 +198,80 @@ export function AdminDashboard({ initialPanels }: Props) {
             {friends.map((panel) => (
               <li
                 key={panel.id}
-                className="panel-surface flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center sm:justify-between"
+                className="panel-surface flex flex-col gap-3 rounded-2xl p-4"
               >
-                <div>
+                <div className="flex flex-wrap items-start justify-between gap-2">
                   <p className="font-medium">{panel.name}</p>
-                  <p className="mt-1 break-all text-xs text-[var(--ink-soft)]">
-                    {panel.inviteToken
-                      ? inviteUrl(panel.inviteToken)
-                      : "Fără invitație"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
                   <Link
                     href={`/chat/${panel.id}`}
                     className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-1.5 text-sm"
                   >
-                    Deschide
+                    Deschide chat
                   </Link>
+                </div>
+                <div className="space-y-2 text-xs text-[var(--ink-soft)]">
+                  <div className="rounded-xl bg-black/[0.03] p-3">
+                    <p className="mb-1 font-medium text-[var(--ink)]">
+                      Link înscriere
+                    </p>
+                    <p className="break-all">
+                      {panel.inviteToken
+                        ? inviteUrl(panel.inviteToken)
+                        : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-black/[0.03] p-3">
+                    <p className="mb-1 font-medium text-[var(--ink)]">
+                      API key → lipește în Bloc notes
+                    </p>
+                    <p className="break-all font-mono text-[11px] text-[var(--ink)]">
+                      {panel.apiKey || "—"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {panel.inviteToken ? (
                     <button
                       type="button"
                       className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-1.5 text-sm"
-                      onClick={() => copyInvite(panel.inviteToken!)}
+                      onClick={() =>
+                        copyText(
+                          `invite-${panel.id}`,
+                          inviteUrl(panel.inviteToken!),
+                        )
+                      }
                     >
-                      {copied === panel.inviteToken ? "Copiat" : "Copiază link"}
+                      {copied === `invite-${panel.id}`
+                        ? "Copiat"
+                        : "Copiază link"}
+                    </button>
+                  ) : null}
+                  {panel.apiKey ? (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-1.5 text-sm"
+                      onClick={() =>
+                        copyText(`api-${panel.id}`, panel.apiKey!)
+                      }
+                    >
+                      {copied === `api-${panel.id}`
+                        ? "Copiat"
+                        : "Copiază API key"}
                     </button>
                   ) : null}
                   <button
                     type="button"
                     className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-1.5 text-sm"
-                    onClick={() => onRotate(panel.id)}
+                    onClick={() => onRotate(panel.id, "invite")}
                   >
                     Regenerează invitație
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-[var(--line)] bg-white/70 px-3 py-1.5 text-sm"
+                    onClick={() => onRotate(panel.id, "api")}
+                  >
+                    Regenerează API key
                   </button>
                   <button
                     type="button"

@@ -14,6 +14,7 @@ export async function GET(request: Request) {
       name: p.name,
       kind: p.kind,
       inviteToken: user.isAdmin ? p.invite_token : undefined,
+      apiKey: user.isAdmin ? p.api_key : undefined,
       createdAt: p.created_at,
     })),
   });
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
           name: panel.name,
           kind: panel.kind,
           inviteToken: panel.invite_token,
+          apiKey: panel.api_key,
           systemPrompt: panel.system_prompt,
           createdAt: panel.created_at,
         },

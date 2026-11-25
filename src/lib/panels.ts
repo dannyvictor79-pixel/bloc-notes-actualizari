@@ -8,6 +8,7 @@ export type Panel = {
   name: string;
   kind: "admin" | "friend";
   invite_token: string;
+  api_key: string;
   system_prompt: string;
   created_by_sub: string;
   created_at: string;
@@ -76,14 +77,15 @@ export async function createFriendPanel(
   if (clash[0]) slug = `${slug}-${id.slice(-6)}`;
 
   const invite = newToken();
+  const apiKey = `bn_${newToken()}`;
   const prompt =
     input.systemPrompt?.trim() ||
-    `Ești asistentul panoului „${name}”. Răspunde util, prietenos și în română când utilizatorul scrie în română.`;
+    `Ești asistentul panoului „${name}”. Înlocuiești botul Telegram: comenzi .efectueaza test, .expirari, .teste, .ajutor. Răspunde în română.`;
 
   await sql(
-    `insert into panels (id, slug, name, kind, invite_token, system_prompt, created_by_sub)
-     values ($1, $2, $3, 'friend', $4, $5, $6)`,
-    [id, slug, name, invite, prompt, user.sub],
+    `insert into panels (id, slug, name, kind, invite_token, api_key, system_prompt, created_by_sub)
+     values ($1, $2, $3, 'friend', $4, $5, $6, $7)`,
+    [id, slug, name, invite, apiKey, prompt, user.sub],
   );
 
   await sql(
@@ -128,6 +130,12 @@ export async function rotateInvite(panelId: string): Promise<string> {
     panelId,
   ]);
   return token;
+}
+
+export async function rotateApiKey(panelId: string): Promise<string> {
+  const apiKey = `bn_${newToken()}`;
+  await sql("update panels set api_key = $1 where id = $2", [apiKey, panelId]);
+  return apiKey;
 }
 
 export async function listMembers(panelId: string): Promise<PanelMember[]> {
