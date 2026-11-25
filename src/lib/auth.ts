@@ -31,16 +31,36 @@ export async function requirePerson(
   return identity;
 }
 
+/** Admin only if configured owner email matches, or local simulated viewer. */
+export function computeIsAdmin(identity: VerifiedIdentity): boolean {
+  if (identity.kind !== "person") return false;
+
+  const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
+  const viewerEmail = (identity.email ?? "").trim().toLowerCase();
+
+  if (ownerEmail !== "") {
+    return viewerEmail !== "" && viewerEmail === ownerEmail;
+  }
+
+  // Production without APP_OWNER_EMAIL: nobody is admin (safe default).
+  // Local/preview simulated viewer may administer so the UI is usable.
+  if (identity.simulated) return true;
+  return false;
+}
+
 export async function resolveUser(
   identity: VerifiedIdentity,
 ): Promise<AppUser> {
-  await ensureBootstrap(identity);
-  const adminSub = await getSetting("admin_sub");
+  const isAdmin = computeIsAdmin(identity);
+  if (isAdmin) {
+    await ensureAdminRecords(identity);
+  }
+
   return {
     sub: identity.sub,
     email: identity.email ?? "",
     name: identity.name || identity.email || "Utilizator",
-    isAdmin: adminSub === identity.sub,
+    isAdmin,
     simulated: Boolean(identity.simulated),
   };
 }
@@ -53,14 +73,6 @@ export async function getAppUser(
   return resolveUser(identity);
 }
 
-async function getSetting(key: string): Promise<string | null> {
-  const rows = await sql<{ value: string }>(
-    "select value from settings where key = $1",
-    [key],
-  );
-  return rows[0]?.value ?? null;
-}
-
 async function setSetting(key: string, value: string): Promise<void> {
   await sql(
     `insert into settings (key, value) values ($1, $2)
@@ -69,13 +81,7 @@ async function setSetting(key: string, value: string): Promise<void> {
   );
 }
 
-async function ensureBootstrap(identity: VerifiedIdentity): Promise<void> {
-  const adminSub = await getSetting("admin_sub");
-  if (adminSub) {
-    await ensureAdminPanel(adminSub, identity);
-    return;
-  }
-
+async function ensureAdminRecords(identity: VerifiedIdentity): Promise<void> {
   await setSetting("admin_sub", identity.sub);
   await setSetting("admin_email", identity.email ?? "");
   await setSetting("admin_name", identity.name || "Admin");

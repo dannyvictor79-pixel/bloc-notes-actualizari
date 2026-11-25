@@ -1,5 +1,5 @@
 import { canAccessPanel, getAppUser, json } from "../../../../../lib/auth";
-import { generateReply } from "../../../../../lib/chat";
+import { generateReply, openaiEnabled } from "../../../../../lib/chat";
 import {
   helpText,
   parseCommand,
@@ -13,6 +13,7 @@ import {
   getPanel,
   listMessages,
 } from "../../../../../lib/panels";
+import { takeRateLimit } from "../../../../../lib/rateLimit";
 import { listTestJobs, runSimulatedTest } from "../../../../../lib/tests";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +62,20 @@ export async function POST(request: Request, ctx: Ctx) {
   if (!content) return json({ error: "Mesajul e gol." }, 400);
   if (content.length > 4000) {
     return json({ error: "Mesajul e prea lung (max 4000)." }, 400);
+  }
+
+  const postLimit = takeRateLimit(
+    `msg:${user.sub}:${panel.id}`,
+    40,
+    10 * 60 * 1000,
+  );
+  if (!postLimit.ok) {
+    return json(
+      {
+        error: `Prea multe mesaje. Reîncearcă în ~${postLimit.retryAfterSec}s.`,
+      },
+      429,
+    );
   }
 
   const recent = await listMessages(panel.id);
@@ -120,6 +135,20 @@ export async function POST(request: Request, ctx: Ctx) {
     });
     replyText = result.reply;
     meta = { testJobId: result.job.id, status: result.job.status };
+  } else if (openaiEnabled()) {
+    const aiLimit = takeRateLimit(`openai:${user.sub}`, 20, 10 * 60 * 1000);
+    if (!aiLimit.ok) {
+      replyText = `Limită AI atinsă. Folosește comenzile (.efectueaza test, .ajutor) sau reîncearcă în ~${aiLimit.retryAfterSec}s.`;
+      sample = true;
+    } else {
+      const reply = await generateReply({
+        systemPrompt: `${panel.system_prompt}\n\nDacă utilizatorul vrea un test, spune-i să folosească:\n.efectueaza test APP MAC Nume 24h`,
+        history: recent,
+        userMessage: content,
+      });
+      replyText = reply.content;
+      sample = reply.sample;
+    }
   } else {
     const reply = await generateReply({
       systemPrompt: `${panel.system_prompt}\n\nDacă utilizatorul vrea un test, spune-i să folosească:\n.efectueaza test APP MAC Nume 24h`,
