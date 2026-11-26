@@ -79,8 +79,8 @@ export function HomeClient() {
             Privat
           </h1>
           <p className="mt-4 max-w-lg text-base text-[var(--ink-soft)] sm:text-lg">
-            Conversații pe panouri separate. Tu ai controlul; prietenii intră doar
-            pe panoul lor.
+            Canal gata de lipit în Bloc notes (în loc de Telegram). Robotelul
+            IPTV îl legăm separat, ulterior.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             {adminPanel ? (

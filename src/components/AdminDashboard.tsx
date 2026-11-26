@@ -4,6 +4,14 @@ import Link from "next/link";
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+export type PanelReminderSettings = {
+  remind3Days: boolean;
+  remind6Days: boolean;
+  morningSummary: boolean;
+  morningHour: number;
+  timezone: string;
+};
+
 export type AdminPanel = {
   id: string;
   slug: string;
@@ -12,6 +20,7 @@ export type AdminPanel = {
   inviteToken?: string;
   apiKey?: string;
   createdAt: string;
+  settings?: PanelReminderSettings;
 };
 
 type Props = {
@@ -103,10 +112,37 @@ export function AdminDashboard({ initialPanels }: Props) {
               ...p,
               inviteToken: data.panel.inviteToken,
               apiKey: data.panel.apiKey,
+              settings: data.panel.settings ?? p.settings,
             }
           : p,
       ),
     );
+  }
+
+  function onToggleSetting(
+    id: string,
+    key: "remind3Days" | "remind6Days" | "morningSummary",
+    value: boolean,
+  ) {
+    startTransition(async () => {
+      const res = await fetch(`/api/panels/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Nu am putut salva setările.");
+        return;
+      }
+      setPanels((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, settings: data.panel.settings ?? p.settings }
+            : p,
+        ),
+      );
+    });
   }
 
   const friends = panels.filter((p) => p.kind === "friend");
@@ -144,10 +180,10 @@ export function AdminDashboard({ initialPanels }: Props) {
             </li>
           </ul>
           <p className="mt-2 text-xs">
-            Endpoints: <code>/api/v1/me</code>, <code>/api/v1/messages</code>,{" "}
-            <code>/api/v1/expirations</code>, <code>/api/v1/reminders</code>,{" "}
-            <code>/api/v1/tests</code>. Client gata:{" "}
-            <code>integrations/privatClient.mjs</code>.
+            Client: <code>integrations/privatClient.mjs</code> · ghid:{" "}
+            <code>integrations/NOTES_WIRE.md</code>. Discovery:{" "}
+            <code>GET /api/v1/capabilities</code>. Robotel IPTV = ulterior
+            (testele sunt simulate).
           </p>
         </div>
       </section>
@@ -257,6 +293,60 @@ export function AdminDashboard({ initialPanels }: Props) {
                       {panel.apiKey || "—"}
                     </p>
                   </div>
+                  {panel.settings ? (
+                    <div className="rounded-xl bg-black/[0.03] p-3">
+                      <p className="mb-2 font-medium text-[var(--ink)]">
+                        Memento-uri (cron 09:00)
+                      </p>
+                      <div className="flex flex-col gap-2 text-sm text-[var(--ink)]">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={panel.settings.remind3Days}
+                            disabled={pending}
+                            onChange={(e) =>
+                              onToggleSetting(
+                                panel.id,
+                                "remind3Days",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          Reminder la 3 zile
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={panel.settings.remind6Days}
+                            disabled={pending}
+                            onChange={(e) =>
+                              onToggleSetting(
+                                panel.id,
+                                "remind6Days",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          Reminder la 6 zile
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={panel.settings.morningSummary}
+                            disabled={pending}
+                            onChange={(e) =>
+                              onToggleSetting(
+                                panel.id,
+                                "morningSummary",
+                                e.target.checked,
+                              )
+                            }
+                          />
+                          Rezumat dimineața
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {panel.inviteToken ? (

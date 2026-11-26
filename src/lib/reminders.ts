@@ -45,6 +45,57 @@ export async function ensureSettings(panelId: string): Promise<PanelSettings> {
   return rows[0]!;
 }
 
+export async function updateSettings(
+  panelId: string,
+  patch: {
+    remind3Days?: boolean;
+    remind6Days?: boolean;
+    morningSummary?: boolean;
+    morningHour?: number;
+    timezone?: string;
+  },
+): Promise<PanelSettings> {
+  await ensureSettings(panelId);
+  const hour =
+    typeof patch.morningHour === "number"
+      ? Math.min(23, Math.max(0, Math.floor(patch.morningHour)))
+      : null;
+  const tz =
+    typeof patch.timezone === "string" && patch.timezone.trim()
+      ? patch.timezone.trim().slice(0, 64)
+      : null;
+
+  await sql(
+    `update panel_settings set
+       remind_3_days = coalesce($2, remind_3_days),
+       remind_6_days = coalesce($3, remind_6_days),
+       morning_summary = coalesce($4, morning_summary),
+       morning_hour = coalesce($5, morning_hour),
+       timezone = coalesce($6, timezone),
+       updated_at = now()
+     where panel_id = $1`,
+    [
+      panelId,
+      patch.remind3Days ?? null,
+      patch.remind6Days ?? null,
+      patch.morningSummary ?? null,
+      hour,
+      tz,
+    ],
+  );
+  return ensureSettings(panelId);
+}
+
+export function publicSettings(s: PanelSettings) {
+  return {
+    remind3Days: s.remind_3_days,
+    remind6Days: s.remind_6_days,
+    morningSummary: s.morning_summary,
+    morningHour: s.morning_hour,
+    timezone: s.timezone,
+  };
+}
+
 export async function listAllSettings(): Promise<PanelSettings[]> {
   return sql<PanelSettings>("select * from panel_settings");
 }

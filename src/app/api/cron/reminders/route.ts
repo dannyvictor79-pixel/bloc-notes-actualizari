@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     return json({ error: "Neautorizat." }, 401);
   }
 
-  const limited = takeRateLimit("cron:reminders", 30, 60 * 60 * 1000);
+  const limited = await takeRateLimit("cron:reminders", 30, 60 * 60 * 1000);
   if (!limited.ok) {
     return json({ error: "Prea dese apelurile cron." }, 429);
   }

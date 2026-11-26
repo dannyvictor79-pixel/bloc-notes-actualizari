@@ -7,6 +7,11 @@ import {
   rotateInvite,
 } from "../../../../lib/panels";
 import { sql } from "../../../../lib/db";
+import {
+  ensureSettings,
+  publicSettings,
+  updateSettings,
+} from "../../../../lib/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +27,9 @@ export async function GET(request: Request, ctx: Ctx) {
     return json({ error: "Nu ai acces la acest panou." }, 403);
   }
   const members = user.isAdmin ? await listMembers(panel.id) : [];
+  const settings = user.isAdmin
+    ? publicSettings(await ensureSettings(panel.id))
+    : undefined;
   return json({
     panel: {
       id: panel.id,
@@ -32,6 +40,7 @@ export async function GET(request: Request, ctx: Ctx) {
       apiKey: user.isAdmin ? panel.api_key : undefined,
       systemPrompt: user.isAdmin ? panel.system_prompt : undefined,
       createdAt: panel.created_at,
+      settings,
     },
     members: members.map((m) => ({
       email: m.member_email,
@@ -56,6 +65,11 @@ export async function PATCH(request: Request, ctx: Ctx) {
     systemPrompt?: string;
     rotateInvite?: boolean;
     rotateApiKey?: boolean;
+    remind3Days?: boolean;
+    remind6Days?: boolean;
+    morningSummary?: boolean;
+    morningHour?: number;
+    timezone?: string;
   };
   try {
     body = await request.json();
@@ -84,6 +98,14 @@ export async function PATCH(request: Request, ctx: Ctx) {
     apiKey = await rotateApiKey(id);
   }
 
+  const settings = await updateSettings(id, {
+    remind3Days: body.remind3Days,
+    remind6Days: body.remind6Days,
+    morningSummary: body.morningSummary,
+    morningHour: body.morningHour,
+    timezone: body.timezone,
+  });
+
   const updated = await getPanel(id);
   return json({
     panel: {
@@ -95,6 +117,7 @@ export async function PATCH(request: Request, ctx: Ctx) {
       apiKey,
       systemPrompt: updated!.system_prompt,
       createdAt: updated!.created_at,
+      settings: publicSettings(settings),
     },
   });
 }

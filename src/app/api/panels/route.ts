@@ -1,5 +1,9 @@
 import { getAppUser, json } from "../../../lib/auth";
 import { createFriendPanel, listPanelsForUser } from "../../../lib/panels";
+import {
+  ensureSettings,
+  publicSettings,
+} from "../../../lib/reminders";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +50,7 @@ export async function POST(request: Request) {
       friendName: body.friendName,
       systemPrompt: body.systemPrompt,
     });
+    const settings = publicSettings(await ensureSettings(panel.id));
     return json(
       {
         panel: {
@@ -57,6 +62,7 @@ export async function POST(request: Request) {
           apiKey: panel.api_key,
           systemPrompt: panel.system_prompt,
           createdAt: panel.created_at,
+          settings,
         },
       },
       201,

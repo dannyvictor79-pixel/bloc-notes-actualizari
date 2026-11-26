@@ -30,7 +30,7 @@ export async function requirePanelApiKey(
     );
   }
 
-  const limited = takeRateLimit(
+  const limited = await takeRateLimit(
     `apikey:${key.slice(0, 12)}`,
     120,
     10 * 60 * 1000,

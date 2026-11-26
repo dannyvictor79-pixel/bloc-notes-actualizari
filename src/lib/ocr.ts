@@ -11,6 +11,14 @@ export type OcrResult = {
 const APP_RE =
   /\b(SMARTONE|IBO(?:PLAYER)?|SMART\s*IPTV|XCIPTV|TIVIMATE|OTT\s*PLAYER)\b/i;
 
+function ocrAiEnabled(): boolean {
+  const key = process.env.OPENAI_API_KEY?.trim() ?? "";
+  const opted = (process.env.OCR_AI_ENABLED ?? "").trim().toLowerCase();
+  return (
+    key !== "" && (opted === "1" || opted === "true" || opted === "yes")
+  );
+}
+
 export function parseAppBannerText(text: string): OcrResult {
   const macAddress = extractMac(text) ?? "";
   const appMatch = text.match(APP_RE);
@@ -30,13 +38,15 @@ export function parseAppBannerText(text: string): OcrResult {
   };
 }
 
-/** Vision OCR when OpenAI key exists (does not require CHAT_AI_ENABLED). */
+/**
+ * Vision OCR only when OCR_AI_ENABLED is set (opt-in).
+ * Otherwise returns empty — caller should ask for pasted banner text.
+ */
 export async function ocrImageBase64(
   imageBase64: string,
   mimeType = "image/jpeg",
 ): Promise<OcrResult> {
-  const key = process.env.OPENAI_API_KEY?.trim() ?? "";
-  if (!key) {
+  if (!ocrAiEnabled()) {
     return {
       appName: "",
       macAddress: "",
@@ -46,6 +56,7 @@ export async function ocrImageBase64(
     };
   }
 
+  const key = process.env.OPENAI_API_KEY!.trim();
   const dataUrl = imageBase64.startsWith("data:")
     ? imageBase64
     : `data:${mimeType};base64,${imageBase64}`;
@@ -100,9 +111,7 @@ export async function ocrImageBase64(
       trialDays?: number | null;
     };
     const mac =
-      extractMac(parsed.macAddress ?? "") ||
-      extractMac(raw) ||
-      "";
+      extractMac(parsed.macAddress ?? "") || extractMac(raw) || "";
     return {
       appName: (parsed.appName ?? "").replace(/\s+/g, "").toUpperCase(),
       macAddress: mac,

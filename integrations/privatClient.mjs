@@ -1,20 +1,21 @@
 /**
- * Client Bloc notes → Privat (înlocuiește apelurile Telegram).
+ * Client gata de copiat în Bloc notes (înlocuiește Telegram).
  *
- * În setările prietenului, în loc de token Telegram:
+ * ENV în notes:
  *   PRIVAT_BASE_URL=https://privat-chat.apps.grok.bot
- *   PRIVAT_API_KEY=bn_...   (din Admin Privat → panoul prietenului)
+ *   PRIVAT_API_KEY=bn_...   (Admin Privat → panoul prietenului)
  *
- * Notă: pentru ca serverul Bloc notes să apeleze API-ul, app-ul Privat
- * trebuie să poată fi atins din afară (de obicei vizibilitate Public în
- * Publish Settings). Datele rămân protejate de API key.
+ * Pentru apeluri din serverul notes, app-ul Privat trebuie accesibil
+ * din afară (de obicei Public în Publish Settings). Datele = pe API key.
+ *
+ * Robotul IPTV se leagă ulterior — createTest() e simulat până atunci.
  */
 
 export function createPrivatClient({
   baseUrl = process.env.PRIVAT_BASE_URL || "https://privat-chat.apps.grok.bot",
   apiKey = process.env.PRIVAT_API_KEY || "",
 } = {}) {
-  const root = baseUrl.replace(/\/$/, "");
+  const root = String(baseUrl).replace(/\/$/, "");
 
   async function request(path, { method = "GET", body } = {}) {
     if (!apiKey) throw new Error("PRIVAT_API_KEY lipsește");
@@ -38,14 +39,21 @@ export function createPrivatClient({
   }
 
   return {
-    /** Echivalent „bot conectat” */
     async ping() {
       return request("/api/v1/me");
     },
 
-    /** Echivalent sendMessage Telegram */
+    async capabilities() {
+      return request("/api/v1/capabilities");
+    },
+
+    /** Echivalent Telegram sendMessage */
     async sendMessage(text) {
       return request("/api/v1/messages", { method: "POST", body: { text } });
+    },
+
+    async listMessages() {
+      return request("/api/v1/messages");
     },
 
     /** Echivalent /lista */
@@ -53,7 +61,6 @@ export function createPrivatClient({
       return request("/api/v1/expirations");
     },
 
-    /** Adaugă termen (ex. din mesaj `06-01-2027 14:52 Nume`) */
     async addExpiration({
       clientName,
       expiresAt,
@@ -67,7 +74,6 @@ export function createPrivatClient({
       });
     },
 
-    /** Memento 3 zile (sau withinDays) — ca checkbox-ul Telegram */
     async sendDueReminders(withinDays = 3) {
       return request("/api/v1/reminders", {
         method: "POST",
@@ -75,7 +81,6 @@ export function createPrivatClient({
       });
     },
 
-    /** Rezumat dimineața 09:00 */
     async sendMorningSummary() {
       return request("/api/v1/reminders", {
         method: "POST",
@@ -83,7 +88,15 @@ export function createPrivatClient({
       });
     },
 
-    /** Test 24h/48h din formularul panou */
+    async getSettings() {
+      return request("/api/v1/settings");
+    },
+
+    async updateSettings(patch) {
+      return request("/api/v1/settings", { method: "PATCH", body: patch });
+    },
+
+    /** Simulat până legăm robotelul IPTV */
     async createTest({ appName, macAddress, clientName, durationHours = 24 }) {
       return request("/api/v1/tests", {
         method: "POST",
@@ -91,8 +104,12 @@ export function createPrivatClient({
       });
     },
 
-    /** OCR poză SMARTONE / text banner */
-    async ocr({ imageBase64, mimeType, text }) {
+    async listTests() {
+      return request("/api/v1/tests");
+    },
+
+    /** Text local / vision doar dacă OCR_AI_ENABLED e setat pe Privat */
+    async ocr({ imageBase64, mimeType, text } = {}) {
       return request("/api/v1/ocr", {
         method: "POST",
         body: { imageBase64, mimeType, text },
@@ -101,14 +118,7 @@ export function createPrivatClient({
   };
 }
 
-/**
- * Cron pe VPS / Bloc notes (la fiecare oră):
- *   curl -X POST "$PRIVAT_BASE_URL/api/cron/reminders" \
- *     -H "Authorization: Bearer $CRON_SECRET"
- */
-
-/** Exemplu drop-in peste un vechi helper Telegram */
+/** Drop-in peste un vechi helper de tip sendTelegram(text) */
 export async function sendViaPrivatInsteadOfTelegram(text) {
-  const client = createPrivatClient();
-  return client.sendMessage(text);
+  return createPrivatClient().sendMessage(text);
 }

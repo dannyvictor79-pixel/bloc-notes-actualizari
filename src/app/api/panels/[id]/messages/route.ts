@@ -71,18 +71,23 @@ export async function POST(request: Request, ctx: Ctx) {
       return json({ error: "Imaginea e prea mare." }, 400);
     }
     const ocr = await ocrImageBase64(image, body.mimeType || "image/jpeg");
-    const label = [
-      "[poză app]",
-      ocr.appName && `App: ${ocr.appName}`,
-      ocr.macAddress && `MAC: ${ocr.macAddress}`,
-      ocr.trialDays != null && `Trial: ${ocr.trialDays} zile`,
-      content,
-    ]
-      .filter(Boolean)
-      .join("\n");
-    content = label || "[poză app — fără text recunoscut]";
-    if (ocr.macAddress || ocr.appName) {
-      content += `\n\nSugestie:\n.efectueaza test ${ocr.appName || "APP"} ${ocr.macAddress || "MAC"} Nume 24h`;
+    if (ocr.source === "none" && !content) {
+      content =
+        "[poză app] OCR vision e oprit. Lipește textul de pe bară (ex. Your MAC : AA:BB:…) sau activează OCR_AI_ENABLED.";
+    } else {
+      const label = [
+        "[poză app]",
+        ocr.appName && `App: ${ocr.appName}`,
+        ocr.macAddress && `MAC: ${ocr.macAddress}`,
+        ocr.trialDays != null && `Trial: ${ocr.trialDays} zile`,
+        content,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      content = label || "[poză app — fără text recunoscut]";
+      if (ocr.macAddress || ocr.appName) {
+        content += `\n\nSugestie:\n.efectueaza test ${ocr.appName || "APP"} ${ocr.macAddress || "MAC"} Nume 24h`;
+      }
     }
   }
 
@@ -91,7 +96,7 @@ export async function POST(request: Request, ctx: Ctx) {
     return json({ error: "Mesajul e prea lung (max 4000)." }, 400);
   }
 
-  const postLimit = takeRateLimit(
+  const postLimit = await takeRateLimit(
     `msg:${user.sub}:${panel.id}`,
     40,
     10 * 60 * 1000,
@@ -179,7 +184,7 @@ export async function POST(request: Request, ctx: Ctx) {
     replyText = result.reply;
     meta = { testJobId: result.job.id, status: result.job.status };
   } else if (openaiEnabled()) {
-    const aiLimit = takeRateLimit(`openai:${user.sub}`, 20, 10 * 60 * 1000);
+    const aiLimit = await takeRateLimit(`openai:${user.sub}`, 20, 10 * 60 * 1000);
     if (!aiLimit.ok) {
       replyText = `Limită AI atinsă. Folosește comenzile (.efectueaza test, .ajutor) sau reîncearcă în ~${aiLimit.retryAfterSec}s.`;
       sample = true;
