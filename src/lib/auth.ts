@@ -38,29 +38,27 @@ export async function requirePerson(
 }
 
 /**
- * Admin rules:
- * - Private published app: signed-in person is the only viewer → admin.
- * - Team / shared: APP_OWNER_EMAIL must match a verified email.
- * - Local (no CURSOR_APP_ID): simulated viewer may admin for Preview.
+ * Admin only when APP_OWNER_EMAIL matches a verified person email.
+ * Friends stay panel members via invite — never app-wide admin.
+ * Locally (no CURSOR_APP_ID), the simulated viewer may admin for Preview.
  */
 export function computeIsAdmin(identity: VerifiedIdentity): boolean {
   if (identity.kind !== "person") return false;
-  if (identity.simulated && isPublishedHost()) return false;
 
-  // Private Cursor apps admit only the owner — treat them as admin.
-  if (
-    isPublishedHost() &&
-    !identity.simulated &&
-    identity.appVisibility === "private"
-  ) {
+  if (isPublishedHost()) {
+    if (identity.simulated) return false;
+    const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
+    if (!ownerEmail) return false;
+    const viewerEmail = (identity.email ?? "").trim().toLowerCase();
+    if (!viewerEmail || viewerEmail !== ownerEmail) return false;
+    if (identity.emailVerified === false) return false;
     return true;
   }
 
+  if (identity.simulated) return true;
   const ownerEmail = process.env.APP_OWNER_EMAIL?.trim().toLowerCase() ?? "";
-  const viewerEmail = (identity.email ?? "").trim().toLowerCase();
-  if (!ownerEmail || !viewerEmail || viewerEmail !== ownerEmail) return false;
-  if (identity.emailVerified === false) return false;
-  return true;
+  if (!ownerEmail) return false;
+  return (identity.email ?? "").trim().toLowerCase() === ownerEmail;
 }
 
 export async function resolveUser(
