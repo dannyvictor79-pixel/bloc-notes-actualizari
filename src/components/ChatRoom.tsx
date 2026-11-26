@@ -128,13 +128,10 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
             <div className="rounded-2xl border border-dashed border-[var(--line)] bg-white/40 p-6">
               <p className="brand-mark text-2xl">Începe conversația</p>
               <p className="mt-2 max-w-md text-sm text-[var(--ink-soft)]">
-                Înlocuiește botul Telegram pe acest panou. Încearcă{" "}
-                <code className="rounded bg-black/5 px-1">.ajutor</code> sau
-                un test ca pe ecranul SMARTONE:
+                Panou de chat separat. Încearcă{" "}
+                <code className="rounded bg-black/5 px-1">.ajutor</code> sau{" "}
+                <code className="rounded bg-black/5 px-1">.expirari</code>.
               </p>
-              <pre className="mt-3 overflow-x-auto rounded-xl bg-black/[0.04] p-3 text-xs">
-                {`.efectueaza test SMARTONE 58:96:0A:B3:E2:84 Ion 24h`}
-              </pre>
             </div>
           ) : null}
           {messages.map((m) => (
@@ -176,7 +173,7 @@ export function ChatRoom({ panelId, panelName, panelKind }: Props) {
               className="field min-w-[12rem] flex-1"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Mesaj sau .efectueaza test…"
+              placeholder="Mesaj sau .ajutor…"
               maxLength={4000}
               disabled={pending}
               aria-label="Mesaj"

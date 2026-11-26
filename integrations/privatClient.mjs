@@ -1,14 +1,9 @@
 /**
- * Client gata de copiat în Bloc notes (înlocuiește Telegram).
+ * Client pentru canalul Privat (chat + termene). Fără robot/teste.
  *
- * ENV în notes:
+ * ENV:
  *   PRIVAT_BASE_URL=https://privat-chat.apps.grok.bot
- *   PRIVAT_API_KEY=bn_...   (Admin Privat → panoul prietenului)
- *
- * Pentru apeluri din serverul notes, app-ul Privat trebuie accesibil
- * din afară (de obicei Public în Publish Settings). Datele = pe API key.
- *
- * Robotul IPTV se leagă ulterior — createTest() e simulat până atunci.
+ *   PRIVAT_API_KEY=bn_...   (Admin → panoul prietenului)
  */
 
 export function createPrivatClient({
@@ -47,7 +42,6 @@ export function createPrivatClient({
       return request("/api/v1/capabilities");
     },
 
-    /** Echivalent Telegram sendMessage */
     async sendMessage(text) {
       return request("/api/v1/messages", { method: "POST", body: { text } });
     },
@@ -56,7 +50,6 @@ export function createPrivatClient({
       return request("/api/v1/messages");
     },
 
-    /** Echivalent /lista */
     async listExpirations() {
       return request("/api/v1/expirations");
     },
@@ -96,19 +89,6 @@ export function createPrivatClient({
       return request("/api/v1/settings", { method: "PATCH", body: patch });
     },
 
-    /** Simulat până legăm robotelul IPTV */
-    async createTest({ appName, macAddress, clientName, durationHours = 24 }) {
-      return request("/api/v1/tests", {
-        method: "POST",
-        body: { appName, macAddress, clientName, durationHours },
-      });
-    },
-
-    async listTests() {
-      return request("/api/v1/tests");
-    },
-
-    /** Text local / vision doar dacă OCR_AI_ENABLED e setat pe Privat */
     async ocr({ imageBase64, mimeType, text } = {}) {
       return request("/api/v1/ocr", {
         method: "POST",
@@ -118,7 +98,6 @@ export function createPrivatClient({
   };
 }
 
-/** Drop-in peste un vechi helper de tip sendTelegram(text) */
 export async function sendViaPrivatInsteadOfTelegram(text) {
   return createPrivatClient().sendMessage(text);
 }

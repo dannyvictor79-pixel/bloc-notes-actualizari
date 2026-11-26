@@ -71,10 +71,10 @@ function sampleReply(userMessage: string): string {
     return "Salut! Sunt chatbotul tău privat (mod local). Folosește .ajutor pentru comenzi.";
   }
   if (/(salut|bună|buna|hello|hi)\b/.test(q)) {
-    return "Salut! Sunt pe panoul tău privat. Pentru teste: `.efectueaza test APP MAC Nume 24h`.";
+    return "Salut! Sunt pe panoul tău privat. Scrie `.ajutor` pentru comenzi.";
   }
   if (/(ajutor|help|ce poți|ce poti)/.test(q)) {
-    return "Comenzi: .efectueaza test, .expirari, .teste, .ajutor. Poți trimite și o poză din app (SMARTONE) pentru OCR.";
+    return "Comenzi: .expirari, .ajutor. Poți trimite și o poză din app (SMARTONE) pentru OCR text.";
   }
   const preview =
     userMessage.length > 120 ? `${userMessage.slice(0, 117)}…` : userMessage;

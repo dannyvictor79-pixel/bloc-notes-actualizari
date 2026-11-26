@@ -1,17 +1,18 @@
-# Privat — chatbot gata de integrare cu Bloc notes
+# Privat — panouri de chat (fără robot/teste)
 
-Canalul care înlocuiește Telegram: panouri prieteni, API key, termene, memento-uri, teste (simulate până la robotel).
+Chatbot privat: panou admin + panouri separate pentru prieteni, termene și memento-uri.  
+Robot / teste IPTV **nu** sunt pe această aplicație.
 
 ## Live
 
 https://privat-chat.apps.grok.bot
 
-## Pentru Bloc notes
+## Ce include
 
-1. Copiază `integrations/privatClient.mjs` în notes  
-2. Vezi `integrations/NOTES_WIRE.md`  
-3. ENV: `PRIVAT_BASE_URL` + `PRIVAT_API_KEY` (din Admin)  
-4. Cron orar: `POST /api/cron/reminders` cu `CRON_SECRET`
+- Admin creează panouri prieteni (link + API key)
+- Chat pe fiecare panou
+- Expirări + cron memento 3/6 zile
+- API `/api/v1/*` pentru mesaje/termene (opțional Bloc notes)
 
 ## Local
 
@@ -20,14 +21,12 @@ npm install
 env -u DATABASE_URL npm run dev
 ```
 
-## Secrets (opțional / admin)
+## Secrets
 
 | Nume | Rol |
 |------|-----|
 | `APP_OWNER_EMAIL` | Emailul tău Cursor = admin |
-| `CRON_SECRET` | Protejează cron-ul de memento-uri |
-| `OPENAI_API_KEY` | Pentru AI / OCR vision |
-| `CHAT_AI_ENABLED` | `true` ca să trimită mesaje la OpenAI |
-| `OCR_AI_ENABLED` | `true` ca să trimită poze la OpenAI vision |
-
-Fără chei AI, chatul și parse-ul text (MAC din banner) merg local.
+| `CRON_SECRET` | Protejează cron-ul |
+| `OPENAI_API_KEY` | Opțional, AI / OCR vision |
+| `CHAT_AI_ENABLED` | `true` pentru chat AI |
+| `OCR_AI_ENABLED` | `true` pentru OCR pe poze |

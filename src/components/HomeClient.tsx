@@ -79,8 +79,8 @@ export function HomeClient() {
             Privat
           </h1>
           <p className="mt-4 max-w-lg text-base text-[var(--ink-soft)] sm:text-lg">
-            Canal gata de lipit în Bloc notes (în loc de Telegram). Robotelul
-            IPTV îl legăm separat, ulterior.
+            Chat privat cu panou admin și panouri separate pentru prieteni.
+            Fără robot / teste IPTV pe această aplicație.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             {adminPanel ? (
@@ -103,12 +103,6 @@ export function HomeClient() {
               className="rounded-xl border border-[var(--line)] bg-white/70 px-5 py-3 text-sm"
             >
               Expirări
-            </Link>
-            <Link
-              href="/teste"
-              className="rounded-xl border border-[var(--line)] bg-white/70 px-5 py-3 text-sm"
-            >
-              Teste
             </Link>
             {data.user.isAdmin ? (
               <Link

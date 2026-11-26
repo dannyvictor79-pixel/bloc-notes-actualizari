@@ -143,7 +143,7 @@ async function ensureAdminPanel(
       "Panou Admin",
       invite,
       apiKey,
-      "Ești asistentul personal al administratorului. Comenzi: .efectueaza test, .expirari, .teste, .ajutor. Răspunde clar, în română.",
+      "Ești asistentul personal al administratorului. Comenzi: .expirari, .ajutor. Răspunde clar, în română.",
       adminSub,
     ],
   );

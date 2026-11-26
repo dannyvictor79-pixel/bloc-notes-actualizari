@@ -86,7 +86,7 @@ export async function createFriendPanel(
   const apiKey = `bn_${newToken()}`;
   const prompt =
     input.systemPrompt?.trim() ||
-    `Ești asistentul panoului „${name}”. Înlocuiești botul Telegram: comenzi .efectueaza test, .expirari, .teste, .ajutor. Răspunde în română.`;
+    `Ești asistentul panoului „${name}”. Comenzi: .expirari, .ajutor. Răspunde în română.`;
 
   await sql(
     `insert into panels (id, slug, name, kind, invite_token, api_key, system_prompt, created_by_sub)

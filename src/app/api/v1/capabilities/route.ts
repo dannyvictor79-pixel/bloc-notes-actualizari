@@ -3,7 +3,7 @@ import { requirePanelApiKey } from "../../../../lib/apiKeyAuth";
 
 export const dynamic = "force-dynamic";
 
-/** Discovery for Bloc notes: ce poate face canalul Privat. */
+/** Discovery for Bloc notes: canal chat + termene (fără robot/teste). */
 export async function GET(request: Request) {
   const auth = await requirePanelApiKey(request);
   if (auth instanceof Response) return auth;
@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     replaces: "telegram",
     panel: { id: auth.panel.id, name: auth.panel.name, kind: auth.panel.kind },
     robotReady: false,
+    testsEnabled: false,
     endpoints: {
       me: "GET /api/v1/me",
       capabilities: "GET /api/v1/capabilities",
@@ -23,7 +24,6 @@ export async function GET(request: Request) {
       addExpiration: "POST /api/v1/expirations",
       reminders: "POST /api/v1/reminders",
       settings: "GET|PATCH /api/v1/settings",
-      tests: "GET|POST /api/v1/tests",
       ocr: "POST /api/v1/ocr",
       cronReminders: "POST /api/cron/reminders (CRON_SECRET)",
     },
@@ -34,7 +34,6 @@ export async function GET(request: Request) {
       addTerm: "addExpiration({ clientName, expiresAt, ... })",
       remind3Days: "sendDueReminders(3) or cron",
       morningSummary: "sendMorningSummary() or cron",
-      test24h: "createTest({ ..., durationHours: 24 })",
     },
   });
 }

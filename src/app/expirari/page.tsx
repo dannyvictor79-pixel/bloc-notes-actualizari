@@ -195,8 +195,7 @@ export default function ExpirariPage() {
           <h2 className="brand-mark text-2xl">Termene ({rows.length})</h2>
           {rows.length === 0 ? (
             <p className="text-sm text-[var(--ink-soft)]">
-              Niciun termen. Rulează un `.efectueaza test` din chat sau adaugă
-              manual.
+              Niciun termen. Adaugă unul manual mai sus.
             </p>
           ) : (
             <ul className="space-y-3">

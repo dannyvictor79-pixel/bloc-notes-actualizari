@@ -30,9 +30,6 @@ export function AppNav({ userName, isAdmin }: Props) {
           <Link href="/expirari" className={linkClass("/expirari")}>
             Expirări
           </Link>
-          <Link href="/teste" className={linkClass("/teste")}>
-            Teste
-          </Link>
           {isAdmin ? (
             <Link href="/admin" className={linkClass("/admin")}>
               Admin

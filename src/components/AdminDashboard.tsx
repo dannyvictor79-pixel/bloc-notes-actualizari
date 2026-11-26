@@ -182,8 +182,8 @@ export function AdminDashboard({ initialPanels }: Props) {
           <p className="mt-2 text-xs">
             Client: <code>integrations/privatClient.mjs</code> · ghid:{" "}
             <code>integrations/NOTES_WIRE.md</code>. Discovery:{" "}
-            <code>GET /api/v1/capabilities</code>. Robotel IPTV = ulterior
-            (testele sunt simulate).
+            <code>GET /api/v1/capabilities</code>. Fără robot/teste pe această
+            app — panourile de chat rămân separate.
           </p>
         </div>
       </section>

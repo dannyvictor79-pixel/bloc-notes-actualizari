@@ -15,7 +15,6 @@ import {
   listMessages,
 } from "../../../../../lib/panels";
 import { takeRateLimit } from "../../../../../lib/rateLimit";
-import { listTestJobs, runSimulatedTest } from "../../../../../lib/tests";
 
 export const dynamic = "force-dynamic";
 
@@ -85,9 +84,6 @@ export async function POST(request: Request, ctx: Ctx) {
         .filter(Boolean)
         .join("\n");
       content = label || "[poză app — fără text recunoscut]";
-      if (ocr.macAddress || ocr.appName) {
-        content += `\n\nSugestie:\n.efectueaza test ${ocr.appName || "APP"} ${ocr.macAddress || "MAC"} Nume 24h`;
-      }
     }
   }
 
@@ -138,13 +134,10 @@ export async function POST(request: Request, ctx: Ctx) {
           parsed.appName && `Aplicație: ${parsed.appName}`,
           `MAC: ${parsed.macAddress}`,
           parsed.trialDays != null && `Trial: ${parsed.trialDays} zile`,
-          "",
-          "Confirmă cu:",
-          `.efectueaza test ${parsed.appName || "SMARTONE"} ${parsed.macAddress} Nume 24h`,
         ]
           .filter(Boolean)
           .join("\n")
-      : "Nu am putut citi MAC-ul din poză. Scrie manual: `.efectueaza test SMARTONE AA:BB:CC:DD:EE:FF Nume 24h`";
+      : "Nu am putut citi MAC-ul din poză. Lipește textul de pe bară (ex. Your MAC : AA:BB:…).";
     meta = { ocr: parsed };
   } else if (command?.kind === "help") {
     replyText = helpText();
@@ -161,32 +154,10 @@ export async function POST(request: Request, ctx: Ctx) {
         }),
       ].join("\n");
     }
-  } else if (command?.kind === "lista_teste") {
-    const jobs = await listTestJobs(panel.id);
-    if (jobs.length === 0) {
-      replyText = "Niciun test pe acest panou.";
-    } else {
-      replyText = [
-        "Joburi test:",
-        ...jobs.slice(0, 10).map(
-          (j) =>
-            `• [${j.status}] ${j.app_name || "?"} ${j.mac_address || ""} ${j.client_name} ${j.duration_hours}h`,
-        ),
-      ].join("\n");
-    }
-  } else if (command?.kind === "test") {
-    const result = await runSimulatedTest({
-      panelId: panel.id,
-      userSub: user.sub,
-      command,
-      rawInput: content,
-    });
-    replyText = result.reply;
-    meta = { testJobId: result.job.id, status: result.job.status };
   } else if (openaiEnabled()) {
     const aiLimit = await takeRateLimit(`openai:${user.sub}`, 20, 10 * 60 * 1000);
     if (!aiLimit.ok) {
-      replyText = `Limită AI atinsă. Folosește comenzile (.efectueaza test, .ajutor) sau reîncearcă în ~${aiLimit.retryAfterSec}s.`;
+      replyText = `Limită AI atinsă. Folosește \`.ajutor\` / \`.expirari\` sau reîncearcă în ~${aiLimit.retryAfterSec}s.`;
       sample = true;
     } else {
       const reply = await generateReply({

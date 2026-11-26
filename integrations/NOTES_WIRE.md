@@ -1,7 +1,9 @@
-# Legare Bloc notes → Privat (fără robot încă)
+# Legare Bloc notes → Privat (fără robot/teste)
+
+Panourile Privat rămân o app separată. Această versiune = chat + termene + memento-uri.
 
 ## 1. Copiază clientul
-Pune `privatClient.mjs` în proiectul notes (orice folder `lib/` / `services/`).
+Pune `privatClient.mjs` în notes.
 
 ## 2. ENV per prieten
 ```
@@ -9,27 +11,19 @@ PRIVAT_BASE_URL=https://privat-chat.apps.grok.bot
 PRIVAT_API_KEY=bn_...   # din Admin Privat
 ```
 
-## 3. Înlocuiește apelurile Telegram
+## 3. Înlocuiește Telegram
 | Telegram | Privat |
 |----------|--------|
-| bot token / getMe | `ping()` / `capabilities()` |
 | sendMessage | `sendMessage(text)` |
 | listă termene | `listExpirations()` |
 | adaugă termen | `addExpiration({ clientName, expiresAt })` |
-| memento 3 zile | `sendDueReminders(3)` sau cron |
-| rezumat 09:00 | `sendMorningSummary()` sau cron |
-| test 24h/48h | `createTest({ ... })` *(simulat)* |
+| memento / rezumat | `sendDueReminders(3)` / `sendMorningSummary()` sau cron |
 
-## 4. Cron (VPS / notes)
+## 4. Cron
 ```bash
 curl -X POST "$PRIVAT_BASE_URL/api/cron/reminders" \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
-Rulează la fiecare oră.
 
-## 5. Vizibilitate app
-Ca notes (server) să apeleze API-ul, Privat trebuie accesibil din afară
-(de obicei **Public** în Publish Settings). UI-ul rămâne pe API key / login.
-
-## 6. Ulterior
-Robotelul IPTV se leagă pe `createTest` / panel test — fără să schimbe chatul.
+## 5. Nu pe această app
+Robotel IPTV / `.efectueaza test` / panou Teste — ulterior, app separat.
