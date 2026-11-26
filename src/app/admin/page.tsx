@@ -17,7 +17,12 @@ export default function AdminPage() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Neautorizat");
         if (!data.user.isAdmin) {
-          throw new Error("Doar adminul poate deschide acest panou.");
+          const who = data.user.email
+            ? ` Ești logat ca ${data.user.email}.`
+            : "";
+          throw new Error(
+            `Doar adminul poate deschide acest panou.${who} Verifică APP_OWNER_EMAIL în Publish Settings (același email ca în Cursor), apoi reîncarcă.`,
+          );
         }
         if (!cancelled) {
           setUserName(data.user.name);
